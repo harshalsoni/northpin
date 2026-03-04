@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlusCode Locator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f5f6f8;
+  --surface:   #ffffff;
+  --card:      #ffffff;
+  --panel-bg:  #fafbfc;
+  --border:    #e2e5ea;
+  --border2:   #d0d5dd;
+  --accent:    #0062ff;
+  --accent-lt: #e8f0ff;
+  --accent2:   #f04438;
+  --text:      #111827;
+  --text2:     #374151;
+  --muted:     #9ca3af;
+  --success:   #059669;
+  --success-lt:#d1fae5;
+  --warn:      #d97706;
+  --warn-lt:   #fef3c7;
+  --shadow:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  --mono: 'Space Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+
+.app {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+}
+
+/* ── Top bar ── */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1000;
+}
+
+.brand { display: flex; align-items: center; gap: 0.65rem; }
+.brand-icon {
+  width: 30px; height: 30px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; font-weight: 900; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,98,255,0.35);
+}
+.brand-name { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+.brand-sub  { font-family: var(--mono); font-size: 0.5rem; color: var(--muted); letter-spacing: 0.1em; margin-top: 1px; }
+
+.topbar-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 0.75rem;
+}
+
+/* Layer toggle pills */
+.layer-toggle {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.layer-btn {
+  padding: 0.3rem 0.75rem;
+  border: none; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.18s;
+  background: transparent; color: var(--muted);
+  display: flex; align-items: center; gap: 0.35rem;
+}
+.layer-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.layer-btn:not(.active):hover { color: var(--text2); }
+
+.hint-pill {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: var(--accent-lt);
+  border-radius: 20px; padding: 0.28rem 0.75rem;
+  font-family: var(--mono); font-size: 0.6rem; color: var(--accent);
+  letter-spacing: 0.05em; white-space: nowrap;
+}
+.hint-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s ease infinite; }
+
+/* ── Left panel ── */
+.panel {
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto; overflow-x: hidden;
+}
+.panel-section {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.panel-section + .panel-section { margin-top: 6px; }
+
+/* GPS button */
+.btn-gps {
+  width: 100%; padding: 0.75rem 1rem;
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,98,255,0.3);
+}
+.btn-gps:hover { background: #0052d4; box-shadow: 0 4px 14px rgba(0,98,255,0.4); transform: translateY(-1px); }
+.btn-gps:active { transform: translateY(0); }
+.btn-gps:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Status */
+.status-bar {
+  padding: 0.5rem 0.65rem; font-family: var(--mono); font-size: 0.67rem;
+  display: none; align-items: center; gap: 0.4rem;
+  border-radius: 6px; margin-top: 0.5rem;
+}
+.status-bar.loading { display:flex; background: var(--accent-lt); color: var(--accent); }
+.status-bar.error   { display:flex; background: #fee2e2; color: var(--accent2); }
+.spinner { width:11px; height:11px; border:2px solid rgba(0,98,255,0.2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
+
+/* Section label */
+.sec-label {
+  font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.16em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 0.6rem;
+}
+
+/* Manual coord inputs */
+.coord-row { display: flex; gap: 0.4rem; }
+.coord-wrap { flex: 1; position: relative; min-width: 0; }
+.coord-tag {
+  position: absolute; left: 0.55rem; top: 50%; transform: translateY(-50%);
+  font-family: var(--mono); font-size: 0.56rem; color: var(--accent);
+  letter-spacing: 0.04em; pointer-events: none; font-weight: 700;
+}
+input.coord-input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 7px;
+  padding: 0.55rem 0.45rem 0.55rem 2rem; color: var(--text);
+  font-family: var(--mono); font-size: 0.7rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+input.coord-input::placeholder { color: var(--muted); }
+input.coord-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,98,255,0.12); }
+.btn-encode {
+  padding: 0.55rem 0.85rem; background: var(--accent-lt); border: 1px solid var(--accent);
+  border-radius: 7px; color: var(--accent); font-family: var(--mono); font-size: 0.67rem;
+  font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap; align-self: stretch;
+}
+.btn-encode:hover { background: var(--accent); color: #fff; }
+
+/* ── Result block ── */
+.result-block { display: none; flex-direction: column; animation: fadeUp 0.3s ease both; }
+.result-block.visible { display: flex; }
+
+.result-hdr {
+  padding: 0.55rem 1.1rem;
+  background: var(--success-lt);
+  border-top: 1px solid #a7f3d0;
+  border-bottom: 1px solid #a7f3d0;
+  font-family: var(--mono); font-size: 0.57rem; letter-spacing: 0.14em; color: var(--success);
+  text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem;
+}
+.live-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse 1.5s ease infinite; flex-shrink: 0; }
+.acc-badge {
+  margin-left: auto; font-family: var(--mono); font-size: 0.54rem;
+  padding: 0.1rem 0.4rem; border-radius: 4px;
+}
+.acc-high { background: var(--success-lt); color: var(--success); border: 1px solid #6ee7b7; }
+.acc-med  { background: var(--accent-lt);  color: var(--accent);  border: 1px solid #93c5fd; }
+.acc-low  { background: var(--warn-lt);    color: var(--warn);    border: 1px solid #fcd34d; }
+
+/* Code display */
+.code-zone {
+  padding: 1.1rem 1.1rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  background: var(--surface);
+}
+.plus-code-big {
+  font-family: var(--mono); font-size: 1.85rem; font-weight: 700;
+  letter-spacing: 0.14em; color: var(--accent);
+  cursor: pointer; transition: color 0.2s, transform 0.15s;
+  display: inline-block; word-break: break-all;
+}
+.plus-code-big:hover { color: #0052d4; transform: scale(1.02); }
+.copy-hint { font-family: var(--mono); font-size: 0.56rem; color: var(--muted); margin-top: 0.25rem; }
+
+/* Address */
+.addr-zone { padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+.addr-label { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.35rem; }
+.addr-text { font-size: 0.82rem; line-height: 1.55; color: var(--text); }
+.addr-text.no-addr {
+  font-family: var(--mono); font-size: 0.66rem; color: var(--warn);
+  background: var(--warn-lt); border: 1px solid #fcd34d; border-radius: 6px;
+  padding: 0.5rem 0.65rem; display: flex; align-items: flex-start; gap: 0.4rem;
+}
+
+/* Meta grid */
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border-bottom: 1px solid var(--border); }
+.meta-item { padding: 0.65rem 1.1rem; }
+.meta-item:nth-child(odd) { border-right: 1px solid var(--border); }
+.meta-item:nth-child(n+3) { border-top: 1px solid var(--border); }
+.meta-label { font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.2rem; }
+.meta-value { font-family: var(--mono); font-size: 0.7rem; color: var(--text2); font-weight: 700; }
+
+/* Actions */
+.action-row { padding: 0.7rem 1.1rem; display: flex; gap: 0.4rem; flex-wrap: wrap; background: var(--panel-bg); border-bottom: 1px solid var(--border); }
+.btn-action {
+  flex: 1; min-width: 70px; padding: 0.4rem 0.35rem;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 6px;
+  color: var(--text2); font-family: var(--mono); font-size: 0.58rem;
+  letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+  transition: all 0.18s; text-align: center; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;
+  box-shadow: var(--shadow);
+}
+.btn-action:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+
+/* ── Map ── */
+.map-panel { position: relative; background: #e8edf2; }
+#map { width: 100%; height: 100%; }
+
+/* Leaflet light overrides — no filter on tiles (satellite needs true colour) */
+.leaflet-container { background: #e8edf2 !important; font-family: var(--sans) !important; }
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.88) !important;
+  color: var(--muted) !important; font-size: 9px !important;
+  border-radius: 4px !important; border: 1px solid var(--border) !important;
+}
+.leaflet-control-attribution a { color: var(--accent) !important; }
+.leaflet-control-zoom {
+  border: 1px solid var(--border2) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-md) !important;
+}
+.leaflet-control-zoom a {
+  background: var(--surface) !important; color: var(--text) !important;
+  border-bottom: 1px solid var(--border) !important; font-size: 16px !important;
+  line-height: 26px !important; width: 28px !important; height: 28px !important;
+}
+.leaflet-control-zoom a:hover { background: var(--bg) !important; color: var(--accent) !important; }
+.leaflet-control-zoom-out { border-bottom: none !important; }
+
+/* Popup */
+.leaflet-popup-content-wrapper {
+  background: var(--surface) !important; border: 1px solid var(--border) !important;
+  border-radius: 8px !important; box-shadow: var(--shadow-md) !important; padding: 0 !important;
+}
+.leaflet-popup-content { margin: 0 !important; }
+.leaflet-popup-tip-container { margin-top: -1px !important; }
+.leaflet-popup-tip { background: var(--surface) !important; box-shadow: none !important; }
+.leaflet-popup-close-button { color: var(--muted) !important; top: 5px !important; right: 7px !important; font-size: 15px !important; }
+
+/* Map tip overlay */
+.map-tip {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.94); border: 1px solid var(--border2);
+  border-radius: 20px; box-shadow: var(--shadow-md);
+  padding: 0.38rem 1rem; font-family: var(--mono); font-size: 0.62rem;
+  color: var(--text2); pointer-events: none; z-index: 500; white-space: nowrap; letter-spacing: 0.04em;
+  transition: opacity 0.4s;
+}
+.map-tip.hidden { opacity: 0; }
+
+/* Satellite label overlay */
+.sat-label {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em;
+  padding: 0.28rem 0.65rem; border-radius: 4px;
+  z-index: 500; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+}
+.sat-label.visible { opacity: 1; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 1.5rem; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--accent); color: #fff;
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  padding: 0.48rem 1.2rem; border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,98,255,0.35);
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 9999; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  html, body { overflow: auto; }
+  .app { grid-template-columns: 1fr; grid-template-rows: 56px 1fr 320px; height: auto; min-height: 100vh; }
+  .panel { overflow-y: visible; border-right: none; border-bottom: 1px solid var(--border); }
+  .map-panel { min-height: 320px; }
+  #map { min-height: 320px; }
+  .hint-pill { display: none; }
+}
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes spin   { to { transform:rotate(360deg); } }
+@keyframes pulse  { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">+</div>
+      <div>
+        <div class="brand-name">PlusCode Locator</div>
+        <div class="brand-sub">BASE-20 · OPEN LOCATION CODE · OSM + SATELLITE</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <!-- Layer toggle -->
+      <div class="layer-toggle" id="layerToggle">
+        <button class="layer-btn active" id="btnStreet" onclick="setLayer('street')">
+          🗺 Street
+        </button>
+        <button class="layer-btn" id="btnSat" onclick="setLayer('satellite')">
+          🛰 Satellite
+        </button>
+      </div>
+      <div class="hint-pill">
+        <div class="hint-dot"></div>
+        <span>CLICK MAP TO ENCODE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left panel -->
+  <aside class="panel">
+
+    <!-- GPS -->
+    <div class="panel-section">
+      <button class="btn-gps" id="btnGPS">
+        <span>◎</span><span id="btnText">USE MY LOCATION</span>
+      </button>
+      <div class="status-bar" id="status">
+        <div class="spinner"></div>
+        <span id="statusMsg"></span>
+      </div>
+    </div>
+
+    <!-- Manual -->
+    <div class="panel-section">
+      <div class="sec-label">Manual Coordinates</div>
+      <div class="coord-row">
+        <div class="coord-wrap">
+          <span class="coord-tag">LAT</span>
+          <input class="coord-input" type="number" id="latInput" placeholder="53.5344" step="any" min="-90" max="90">
+        </div>
+        <div class="coord-wrap">
+          <span class="coord-tag">LON</span>
+          <input class="coord-input" type="number" id="lonInput" placeholder="-113.49" step="any" min="-180" max="180">
+        </div>
+        <button class="btn-encode" id="btnManual">GO</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-block" id="resultBlock">
+
+      <div class="result-hdr">
+        <div class="live-dot"></div>
+        <span>PLUS CODE GENERATED</span>
+        <span class="acc-badge acc-med" id="accBadge">—</span>
+      </div>
+
+      <div class="code-zone">
+        <div class="plus-code-big" id="codeDisplay" title="Click to copy">—</div>
+        <div class="copy-hint">↑ click to copy</div>
+      </div>
+
+      <div class="addr-zone">
+        <div class="addr-label">Address</div>
+        <div class="addr-text" id="addrText">—</div>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <div class="meta-label">Latitude</div>
+          <div class="meta-value" id="metaLat">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Longitude</div>
+          <div class="meta-value" id="metaLon">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">GPS Accuracy</div>
+          <div class="meta-value" id="metaAcc">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Resolution</div>
+          <div class="meta-value">≈ 14 × 14 m</div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <a id="mapsLink" class="btn-action" href="#" target="_blank">↗ Maps</a>
+        <a id="osmLink"  class="btn-action" href="#" target="_blank">↗ OSM</a>
+        <a id="plusLink" class="btn-action" href="#" target="_blank">↗ plus.codes</a>
+        <button class="btn-action" id="btnCopy">⎘ Copy</button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Map -->
+  <div class="map-panel">
+    <div class="map-tip" id="mapTip">🖱 Click anywhere on the map to generate a Plus Code</div>
+    <div class="sat-label" id="satLabel">🛰 ESRI WORLD IMAGERY</div>
+    <div id="map"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">COPIED</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+// Open Location Code encoder
+// ═══════════════════════════════════════════════
+const OLC = (() => {
+  const AB = '23456789CFGHJMPQRVWX', BASE = 20, LATMAX = 90, LONMAX = 180;
+  function norm(lon) { while (lon < -LONMAX) lon += 360; while (lon >= LONMAX) lon -= 360; return lon; }
+  function encode(lat, lon, len = 10) {
+    lat = Math.min(LATMAX, Math.max(-LATMAX, lat));
+    lon = norm(lon);
+    if (lat === LATMAX) lat -= 0.9 * Math.pow(20, Math.floor(len / -2 + 2));
+    let lv = Math.floor((lat + LATMAX) * 8000 + 0.5);
+    let nv = Math.floor((lon + LONMAX) * 8000 + 0.5);
+    let code = '';
+    for (let i = 0; i < Math.ceil(len / 2); i++) {
+      code = AB[nv % BASE] + code;
+      code = AB[lv % BASE] + code;
+      lv = Math.floor(lv / BASE);
+      nv = Math.floor(nv / BASE);
+      if (i === 0) code = '+' + code;
+    }
+    return code.substring(0, len + 1);
+  }
+  return { encode };
+})();
+
+// ═══════════════════════════════════════════════
+// Tile layers
+// ═══════════════════════════════════════════════
+const layers = {
+  street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }),
+  satellite: L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© <a href="https://www.esri.com">Esri</a> — Source: Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19
+  })
+};
+
+// ═══════════════════════════════════════════════
+// Map init
+// ═══════════════════════════════════════════════
+const map = L.map('map', { zoomControl: true }).setView([56, -96], 4);
+layers.street.addTo(map);
+let currentLayer = 'street';
+
+// ═══════════════════════════════════════════════
+// Layer switcher
+// ═══════════════════════════════════════════════
+const satLabel = document.getElementById('satLabel');
+
+window.setLayer = function(name) {
+  if (name === currentLayer) return;
+  map.removeLayer(layers[currentLayer]);
+  map.addLayer(layers[name]);
+  currentLayer = name;
+
+  document.getElementById('btnStreet').classList.toggle('active', name === 'street');
+  document.getElementById('btnSat').classList.toggle('active', name === 'satellite');
+  satLabel.classList.toggle('visible', name === 'satellite');
+};
+
+// ═══════════════════════════════════════════════
+// Custom markers
+// ═══════════════════════════════════════════════
+function markerIcon(fill, stroke) {
+  stroke = stroke || '#fff';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+    <filter id="s"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.3"/></filter>
+    <path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z"
+      fill="${fill}" stroke="${stroke}" stroke-width="1.5" filter="url(#s)"/>
+    <circle cx="14" cy="14" r="5.5" fill="rgba(0,0,0,0.25)"/>
+    <circle cx="14" cy="14" r="3.5" fill="${stroke}"/>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38] });
+}
+
+let selMarker = null, gpsMarker = null, gpsCircle = null;
+
+// ═══════════════════════════════════════════════
+// DOM refs
+// ═══════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const btnGPS    = $('btnGPS'),   btnText  = $('btnText');
+const btnManual = $('btnManual'),latInput = $('latInput'), lonInput = $('lonInput');
+const statusEl  = $('status'),   statusMsg= $('statusMsg');
+const resultBlk = $('resultBlock');
+const codeDisp  = $('codeDisplay');
+const addrText  = $('addrText');
+const metaLat   = $('metaLat'),  metaLon = $('metaLon'), metaAcc = $('metaAcc');
+const accBadge  = $('accBadge');
+const mapsLink  = $('mapsLink'), osmLink = $('osmLink'), plusLink = $('plusLink');
+const btnCopy   = $('btnCopy'),  mapTip  = $('mapTip'),  toast   = $('toast');
+
+// ═══════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════
+function showStatus(msg, type) { statusEl.className = 'status-bar ' + type; statusMsg.textContent = msg; }
+function hideStatus() { statusEl.className = 'status-bar'; }
+
+function accInfo(acc) {
+  if (!acc)       return { text: 'Map / Manual',           cls: 'acc-med' };
+  if (acc <= 10)  return { text: `High (${Math.round(acc)} m)`,  cls: 'acc-high' };
+  if (acc <= 100) return { text: `Med (${Math.round(acc)} m)`,   cls: 'acc-med' };
+  return           { text: `Low (${Math.round(acc)} m)`,   cls: 'acc-low' };
+}
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function copyCode() {
+  const c = codeDisp.textContent;
+  if (c === '—') return;
+  navigator.clipboard.writeText(c).then(() => showToast('COPIED TO CLIPBOARD'));
+}
+
+// ═══════════════════════════════════════════════
+// Nominatim reverse geocode
+// ═══════════════════════════════════════════════
+async function reverseGeocode(lat, lon) {
+  addrText.className = 'addr-text';
+  addrText.innerHTML = '<span style="color:var(--muted);font-family:var(--mono);font-size:0.67rem">Looking up address…</span>';
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=en`,
+      { headers: { 'User-Agent': 'PlusCodeLocator/1.0' } }
+    );
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    if (!data || data.error) { noAddress(); return; }
+
+    const a = data.address || {};
+    const streetNum = a.house_number || '';
+    const road      = a.road || a.pedestrian || a.footway || '';
+    const street    = streetNum && road ? `${streetNum} ${road}` : road;
+    const locality  = a.suburb || a.neighbourhood || a.hamlet || a.village || '';
+    const city      = a.city || a.town || a.municipality || '';
+    const county    = a.county || '';
+    const province  = a.state || '';
+    const country   = a.country || '';
+    const postal    = a.postcode || '';
+
+    const richParts = [street, locality, city].filter(Boolean);
+
+    if (richParts.length === 0) {
+      // Rural — show what we have (county/province level)
+      const sparse = [county, province, country].filter(Boolean).join(', ');
+      addrText.className = 'addr-text no-addr';
+      addrText.innerHTML = `<span>⚠</span><span>No civic address — ${sparse || 'remote location'}.<br>Use Plus Code as the precise reference.</span>`;
+      return;
+    }
+
+    const line1 = [street, locality].filter(Boolean).join(', ');
+    const line2  = [city || county, province, postal, country].filter(Boolean).join(', ');
+
+    addrText.className = 'addr-text';
+    addrText.innerHTML = line1
+      ? `<strong style="color:var(--text)">${line1}</strong>${line2 ? `<br><span style="color:var(--muted);font-size:0.76rem">${line2}</span>` : ''}`
+      : `<strong style="color:var(--text)">${line2}</strong>`;
+
+  } catch {
+    addrText.className = 'addr-text';
+    addrText.innerHTML = '<span style="color:var(--muted);font-family:var(--mono);font-size:0.66rem">Address lookup unavailable.</span>';
+  }
+}
+
+function noAddress() {
+  addrText.className = 'addr-text no-addr';
+  addrText.innerHTML = `<span>⚠</span><span>No civic address found — remote or rural location.<br>The Plus Code is the best reference for this spot.</span>`;
+}
+
+// ═══════════════════════════════════════════════
+// Core render
+// ═══════════════════════════════════════════════
+function renderResult(lat, lon, accuracyM, panMap) {
+  const code = OLC.encode(lat, lon, 10);
+  const { text, cls } = accInfo(accuracyM);
+
+  codeDisp.textContent = code;
+  metaLat.textContent  = lat.toFixed(6) + '°';
+  metaLon.textContent  = lon.toFixed(6) + '°';
+  metaAcc.textContent  = accuracyM ? `${Math.round(accuracyM)} m` : 'Map / Manual';
+  accBadge.textContent = text;
+  accBadge.className   = `acc-badge ${cls}`;
+
+  mapsLink.href = `https://www.google.com/maps?q=${lat},${lon}`;
+  osmLink.href  = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=17`;
+  plusLink.href = `https://plus.codes/${code}`;
+
+  latInput.value = lat.toFixed(6);
+  lonInput.value = lon.toFixed(6);
+
+  resultBlk.classList.add('visible');
+  hideStatus();
+
+  // Selected marker — red pin
+  if (selMarker) map.removeLayer(selMarker);
+  selMarker = L.marker([lat, lon], { icon: markerIcon('#e63946', '#fff') })
+    .addTo(map)
+    .bindPopup(
+      `<div style="padding:8px 10px;font-family:monospace;font-size:11px;line-height:1.7;min-width:160px">
+        <div style="font-size:13px;font-weight:700;color:#0062ff;letter-spacing:0.1em">${code}</div>
+        <div style="color:#6b7280;margin-top:2px">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>
+        <div style="margin-top:6px;font-size:10px;color:#9ca3af">Click to copy code</div>
+       </div>`,
+      { className: '' }
+    )
+    .openPopup();
+
+  // Clicking popup copies code
+  selMarker.on('popupopen', () => {
+    const popup = selMarker.getPopup().getElement();
+    if (popup) popup.style.cursor = 'pointer';
+    selMarker.getPopup().getElement()?.addEventListener('click', copyCode);
+  });
+
+  if (panMap) map.setView([lat, lon], Math.max(map.getZoom(), 17), { animate: true, duration: 0.7 });
+
+  mapTip.classList.add('hidden');
+  setTimeout(() => { mapTip.style.display = 'none'; }, 400);
+
+  reverseGeocode(lat, lon);
+}
+
+// ═══════════════════════════════════════════════
+// Map click
+// ═══════════════════════════════════════════════
+map.on('click', e => renderResult(e.latlng.lat, e.latlng.lng, null, false));
+
+// ═══════════════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════════════
+btnGPS.addEventListener('click', () => {
+  if (!navigator.geolocation) { showStatus('Geolocation not supported.', 'error'); return; }
+  btnGPS.disabled = true;
+  btnText.textContent = 'ACQUIRING…';
+  showStatus('Acquiring GPS signal…', 'loading');
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    btnGPS.disabled = false;
+    btnText.textContent = 'USE MY LOCATION';
+    const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+
+    if (gpsCircle) map.removeLayer(gpsCircle);
+    if (gpsMarker) map.removeLayer(gpsMarker);
+
+    gpsCircle = L.circle([lat, lon], {
+      radius: accuracy,
+      color: '#0062ff', fillColor: '#0062ff', fillOpacity: 0.08,
+      weight: 1.5, dashArray: '5 4'
+    }).addTo(map);
+
+    gpsMarker = L.marker([lat, lon], { icon: markerIcon('#0062ff', '#fff'), zIndexOffset: 100 })
+      .addTo(map)
+      .bindTooltip('📍 Your GPS location', { permanent: false });
+
+    renderResult(lat, lon, accuracy, true);
+
+  }, err => {
+    btnGPS.disabled = false;
+    btnText.textContent = 'USE MY LOCATION';
+    const msgs = { 1: 'Location access denied.', 2: 'Position unavailable.', 3: 'GPS request timed out.' };
+    showStatus(msgs[err.code] || 'Unknown error.', 'error');
+  }, { enableHighAccuracy: true, timeout: 14000, maximumAge: 0 });
+});
+
+// ═══════════════════════════════════════════════
+// Manual encode
+// ═══════════════════════════════════════════════
+btnManual.addEventListener('click', () => {
+  const lat = parseFloat(latInput.value);
+  const lon = parseFloat(lonInput.value);
+  if (isNaN(lat) || isNaN(lon)) { showStatus('Enter valid latitude and longitude.', 'error'); return; }
+  if (lat < -90 || lat > 90)   { showStatus('Latitude must be −90 to 90.', 'error'); return; }
+  if (lon < -180 || lon > 180) { showStatus('Longitude must be −180 to 180.', 'error'); return; }
+  hideStatus();
+  renderResult(lat, lon, null, true);
+});
+
+[latInput, lonInput].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') btnManual.click(); }));
+
+codeDisp.addEventListener('click', copyCode);
+btnCopy.addEventListener('click', copyCode);
+
+setTimeout(() => map.invalidateSize(), 150);
+</script>
+</body>
+</html>
