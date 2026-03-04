@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NorthPin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f5f6f8;
+  --surface:   #ffffff;
+  --card:      #ffffff;
+  --panel-bg:  #fafbfc;
+  --border:    #e2e5ea;
+  --border2:   #d0d5dd;
+  --accent:    #0062ff;
+  --accent-lt: #e8f0ff;
+  --accent2:   #f04438;
+  --text:      #111827;
+  --text2:     #374151;
+  --muted:     #9ca3af;
+  --success:   #059669;
+  --success-lt:#d1fae5;
+  --warn:      #d97706;
+  --warn-lt:   #fef3c7;
+  --shadow:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  --mono: 'Space Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+
+.app {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+}
+
+/* ── Top bar ── */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1000;
+}
+
+.brand { display: flex; align-items: center; gap: 0.65rem; }
+.brand-icon {
+  width: 30px; height: 30px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; font-weight: 900; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,98,255,0.35);
+}
+.brand-name { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+.brand-sub  { font-family: var(--mono); font-size: 0.5rem; color: var(--muted); letter-spacing: 0.1em; margin-top: 1px; }
+
+.topbar-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 0.75rem;
+}
+
+/* Layer toggle pills */
+.layer-toggle {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.layer-btn {
+  padding: 0.3rem 0.75rem;
+  border: none; border-radius: 6px;
+  font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.18s;
+  background: transparent; color: var(--muted);
+  display: flex; align-items: center; gap: 0.35rem;
+}
+.layer-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.layer-btn:not(.active):hover { color: var(--text2); }
+
+.hint-pill {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: var(--accent-lt);
+  border-radius: 20px; padding: 0.28rem 0.75rem;
+  font-family: var(--mono); font-size: 0.6rem; color: var(--accent);
+  letter-spacing: 0.05em; white-space: nowrap;
+}
+.hint-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s ease infinite; }
+
+/* ── Left panel ── */
+.panel {
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto; overflow-x: hidden;
+}
+
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 0.5rem;
+  gap: 0;
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1;
+  padding: 0.6rem 0.4rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.tab-btn:hover { color: var(--text2); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab-content { display: none; flex-direction: column; flex: 1; overflow-y: auto; }
+.tab-content.active { display: flex; }
+
+.panel-section {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.panel-section + .panel-section { margin-top: 6px; }
+
+/* GPS button */
+.btn-gps {
+  width: 100%; padding: 0.75rem 1rem;
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,98,255,0.3);
+}
+.btn-gps:hover { background: #0052d4; box-shadow: 0 4px 14px rgba(0,98,255,0.4); transform: translateY(-1px); }
+.btn-gps:active { transform: translateY(0); }
+.btn-gps:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Status */
+.status-bar {
+  padding: 0.5rem 0.65rem; font-family: var(--mono); font-size: 0.67rem;
+  display: none; align-items: center; gap: 0.4rem;
+  border-radius: 6px; margin-top: 0.5rem;
+}
+.status-bar.loading { display:flex; background: var(--accent-lt); color: var(--accent); }
+.status-bar.error   { display:flex; background: #fee2e2; color: var(--accent2); }
+.spinner { width:11px; height:11px; border:2px solid rgba(0,98,255,0.2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
+
+/* Section label */
+.sec-label {
+  font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.16em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 0.6rem;
+}
+
+/* Manual coord inputs */
+.coord-row { display: flex; gap: 0.4rem; }
+.coord-wrap { flex: 1; position: relative; min-width: 0; }
+.coord-tag {
+  position: absolute; left: 0.55rem; top: 50%; transform: translateY(-50%);
+  font-family: var(--mono); font-size: 0.56rem; color: var(--accent);
+  letter-spacing: 0.04em; pointer-events: none; font-weight: 700;
+}
+input.coord-input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 7px;
+  padding: 0.55rem 0.45rem 0.55rem 2rem; color: var(--text);
+  font-family: var(--mono); font-size: 0.7rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+input.coord-input::placeholder { color: var(--muted); }
+input.coord-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,98,255,0.12); }
+input.coord-input.text-input { padding-left: 0.55rem; }
+.btn-encode {
+  padding: 0.55rem 0.85rem; background: var(--accent-lt); border: 1px solid var(--accent);
+  border-radius: 7px; color: var(--accent); font-family: var(--mono); font-size: 0.67rem;
+  font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap; align-self: stretch;
+}
+.btn-encode:hover { background: var(--accent); color: #fff; }
+
+/* ── Result block ── */
+.result-block { display: none; flex-direction: column; animation: fadeUp 0.3s ease both; }
+.result-block.visible { display: flex; }
+
+.result-hdr {
+  padding: 0.55rem 1.1rem;
+  background: var(--success-lt);
+  border-top: 1px solid #a7f3d0;
+  border-bottom: 1px solid #a7f3d0;
+  font-family: var(--mono); font-size: 0.57rem; letter-spacing: 0.14em; color: var(--success);
+  text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem;
+}
+.live-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse 1.5s ease infinite; flex-shrink: 0; }
+.acc-badge {
+  margin-left: auto; font-family: var(--mono); font-size: 0.54rem;
+  padding: 0.1rem 0.4rem; border-radius: 4px;
+}
+.acc-high { background: var(--success-lt); color: var(--success); border: 1px solid #6ee7b7; }
+.acc-med  { background: var(--accent-lt);  color: var(--accent);  border: 1px solid #93c5fd; }
+.acc-low  { background: var(--warn-lt);    color: var(--warn);    border: 1px solid #fcd34d; }
+
+/* Code display */
+.code-zone {
+  padding: 1.1rem 1.1rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  background: var(--surface);
+}
+.plus-code-big {
+  font-family: var(--mono); font-size: 1.85rem; font-weight: 700;
+  letter-spacing: 0.14em; color: var(--accent);
+  cursor: pointer; transition: color 0.2s, transform 0.15s;
+  display: inline-block; word-break: break-all;
+}
+.plus-code-big:hover { color: #0052d4; transform: scale(1.02); }
+.copy-hint { font-family: var(--mono); font-size: 0.56rem; color: var(--muted); margin-top: 0.25rem; }
+
+/* Address */
+.addr-zone { padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+.addr-label { font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.35rem; }
+.addr-text { font-size: 0.82rem; line-height: 1.55; color: var(--text); }
+.addr-text.no-addr {
+  font-family: var(--mono); font-size: 0.66rem; color: var(--warn);
+  background: var(--warn-lt); border: 1px solid #fcd34d; border-radius: 6px;
+  padding: 0.5rem 0.65rem; display: flex; align-items: flex-start; gap: 0.4rem;
+}
+
+/* 911 status */
+.addr-text.addr-ok {
+  font-family: var(--mono); font-size: 0.66rem; color: var(--success);
+  background: var(--success-lt); border: 1px solid #6ee7b7; border-radius: 6px;
+  padding: 0.5rem 0.65rem; display: flex; align-items: flex-start; gap: 0.4rem;
+}
+
+/* Meta grid */
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border-bottom: 1px solid var(--border); }
+.meta-item { padding: 0.65rem 1.1rem; }
+.meta-item:nth-child(odd) { border-right: 1px solid var(--border); }
+.meta-item:nth-child(n+3) { border-top: 1px solid var(--border); }
+.meta-label { font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.2rem; }
+.meta-value { font-family: var(--mono); font-size: 0.7rem; color: var(--text2); font-weight: 700; }
+
+/* Actions */
+.action-row { padding: 0.7rem 1.1rem; display: flex; gap: 0.4rem; flex-wrap: wrap; background: var(--panel-bg); border-bottom: 1px solid var(--border); }
+.btn-action {
+  flex: 1; min-width: 70px; padding: 0.4rem 0.35rem;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 6px;
+  color: var(--text2); font-family: var(--mono); font-size: 0.58rem;
+  letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+  transition: all 0.18s; text-align: center; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;
+  box-shadow: var(--shadow);
+}
+.btn-action:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+
+/* Tools / Share section helpers */
+.tool-desc {
+  font-family: var(--mono); font-size: 0.6rem; color: var(--muted); margin-bottom: 0.5rem; line-height: 1.5;
+}
+.tool-result {
+  margin-top: 0.6rem;
+}
+.landmark-item {
+  padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 0.62rem;
+}
+.landmark-item:last-child { border-bottom: none; }
+.share-url-row {
+  display: flex; gap: 0.4rem; align-items: center;
+}
+.share-url-input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px;
+  padding: 0.4rem; font-family: var(--mono); font-size: 0.6rem; color: var(--text2); outline: none;
+}
+.card-preview {
+  background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+  padding: 0.7rem; font-family: var(--mono); font-size: 0.62rem; color: var(--text2);
+  line-height: 1.7; margin-bottom: 0.5rem; white-space: pre-line;
+}
+
+/* ── Map ── */
+.map-panel { position: relative; background: #e8edf2; }
+#map { width: 100%; height: 100%; }
+
+/* Leaflet light overrides */
+.leaflet-container { background: #e8edf2 !important; font-family: var(--sans) !important; }
+.leaflet-control-attribution {
+  background: rgba(255,255,255,0.88) !important;
+  color: var(--muted) !important; font-size: 9px !important;
+  border-radius: 4px !important; border: 1px solid var(--border) !important;
+}
+.leaflet-control-attribution a { color: var(--accent) !important; }
+.leaflet-control-zoom {
+  border: 1px solid var(--border2) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-md) !important;
+}
+.leaflet-control-zoom a {
+  background: var(--surface) !important; color: var(--text) !important;
+  border-bottom: 1px solid var(--border) !important; font-size: 16px !important;
+  line-height: 26px !important; width: 28px !important; height: 28px !important;
+}
+.leaflet-control-zoom a:hover { background: var(--bg) !important; color: var(--accent) !important; }
+.leaflet-control-zoom-out { border-bottom: none !important; }
+
+/* Popup */
+.leaflet-popup-content-wrapper {
+  background: var(--surface) !important; border: 1px solid var(--border) !important;
+  border-radius: 8px !important; box-shadow: var(--shadow-md) !important; padding: 0 !important;
+}
+.leaflet-popup-content { margin: 0 !important; }
+.leaflet-popup-tip-container { margin-top: -1px !important; }
+.leaflet-popup-tip { background: var(--surface) !important; box-shadow: none !important; }
+.leaflet-popup-close-button { color: var(--muted) !important; top: 5px !important; right: 7px !important; font-size: 15px !important; }
+
+/* Map tip overlay */
+.map-tip {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,0.94); border: 1px solid var(--border2);
+  border-radius: 20px; box-shadow: var(--shadow-md);
+  padding: 0.38rem 1rem; font-family: var(--mono); font-size: 0.62rem;
+  color: var(--text2); pointer-events: none; z-index: 500; white-space: nowrap; letter-spacing: 0.04em;
+  transition: opacity 0.4s;
+}
+.map-tip.hidden { opacity: 0; }
+
+/* Satellite label overlay */
+.sat-label {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em;
+  padding: 0.28rem 0.65rem; border-radius: 4px;
+  z-index: 500; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+}
+.sat-label.visible { opacity: 1; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 1.5rem; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--accent); color: #fff;
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  padding: 0.48rem 1.2rem; border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,98,255,0.35);
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 9999; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  html, body { overflow: auto; }
+  .app { grid-template-columns: 1fr; grid-template-rows: 56px auto 1fr; height: auto; min-height: 100vh; }
+  .panel { overflow-y: auto; border-right: none; border-bottom: 1px solid var(--border); max-height: 60vh; }
+  .map-panel { min-height: 320px; }
+  #map { min-height: 320px; }
+  .hint-pill { display: none; }
+  .tab-bar { position: sticky; top: 0; z-index: 10; }
+}
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes spin   { to { transform:rotate(360deg); } }
+@keyframes pulse  { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">N</div>
+      <div>
+        <div class="brand-name">NorthPin</div>
+        <div class="brand-sub">PLUS CODE &middot; OPEN LOCATION CODE &middot; LOCATION TOOLS</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="layer-toggle" id="layerToggle">
+        <button class="layer-btn active" id="btnStreet" onclick="setLayer('street')">Street</button>
+        <button class="layer-btn" id="btnSat" onclick="setLayer('satellite')">Satellite</button>
+      </div>
+      <div class="hint-pill">
+        <div class="hint-dot"></div>
+        <span>CLICK MAP TO PIN LOCATION</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left panel -->
+  <aside class="panel">
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="locate">Locate</button>
+      <button class="tab-btn" data-tab="tools">Tools</button>
+      <button class="tab-btn" data-tab="share">Share</button>
+    </div>
+
+    <!-- ═══ Tab: Locate ═══ -->
+    <div class="tab-content active" id="tabLocate" data-tab="locate">
+
+      <!-- GPS -->
+      <div class="panel-section">
+        <button class="btn-gps" id="btnGPS">
+          <span>&#9678;</span><span id="btnText">USE MY LOCATION</span>
+        </button>
+        <div class="status-bar" id="status">
+          <div class="spinner"></div>
+          <span id="statusMsg"></span>
+        </div>
+      </div>
+
+      <!-- Manual -->
+      <div class="panel-section">
+        <div class="sec-label">Manual Coordinates</div>
+        <div class="coord-row">
+          <div class="coord-wrap">
+            <span class="coord-tag">LAT</span>
+            <input class="coord-input" type="number" id="latInput" placeholder="53.5344" step="any" min="-90" max="90">
+          </div>
+          <div class="coord-wrap">
+            <span class="coord-tag">LON</span>
+            <input class="coord-input" type="number" id="lonInput" placeholder="-113.49" step="any" min="-180" max="180">
+          </div>
+          <button class="btn-encode" id="btnManual">GO</button>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="result-block" id="resultBlock">
+
+        <div class="result-hdr">
+          <div class="live-dot"></div>
+          <span>PLUS CODE GENERATED</span>
+          <span class="acc-badge acc-med" id="accBadge">&mdash;</span>
+        </div>
+
+        <div class="code-zone">
+          <div class="plus-code-big" id="codeDisplay" title="Click to copy">&mdash;</div>
+          <div class="copy-hint">&uarr; click to copy</div>
+        </div>
+
+        <div class="addr-zone">
+          <div class="addr-label">Address</div>
+          <div class="addr-text" id="addrText">&mdash;</div>
+        </div>
+
+        <div class="addr-zone" id="zone911" style="display:none">
+          <div class="addr-label">911 Civic Address Status</div>
+          <div class="addr-text" id="addr911Text"></div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="meta-label">Latitude</div>
+            <div class="meta-value" id="metaLat">&mdash;</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Longitude</div>
+            <div class="meta-value" id="metaLon">&mdash;</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">GPS Accuracy</div>
+            <div class="meta-value" id="metaAcc">&mdash;</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Resolution</div>
+            <div class="meta-value">&asymp; 14 &times; 14 m</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Elevation</div>
+            <div class="meta-value" id="metaElev">&mdash;</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">What3Words</div>
+            <div class="meta-value" id="metaW3W">&mdash;</div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <a id="mapsLink" class="btn-action" href="#" target="_blank">&nearr; Maps</a>
+          <a id="osmLink"  class="btn-action" href="#" target="_blank">&nearr; OSM</a>
+          <a id="plusLink" class="btn-action" href="#" target="_blank">&nearr; plus.codes</a>
+          <button class="btn-action" id="btnCopy">&#9112; Copy</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ Tab: Tools ═══ -->
+    <div class="tab-content" id="tabTools" data-tab="tools">
+
+      <!-- Search by Address -->
+      <div class="panel-section">
+        <div class="sec-label">Search by Address</div>
+        <div class="coord-row">
+          <div class="coord-wrap" style="flex:3">
+            <input class="coord-input text-input" type="text" id="searchInput"
+                   placeholder="123 Main St, Edmonton, AB">
+          </div>
+          <button class="btn-encode" id="btnSearch">FIND</button>
+        </div>
+        <div class="status-bar" id="searchStatus">
+          <div class="spinner"></div>
+          <span id="searchStatusMsg"></span>
+        </div>
+      </div>
+
+      <!-- Decode Plus Code -->
+      <div class="panel-section">
+        <div class="sec-label">Decode Plus Code</div>
+        <div class="coord-row">
+          <div class="coord-wrap" style="flex:3">
+            <input class="coord-input text-input" type="text" id="decodeInput"
+                   placeholder="9558GGM6+Q2">
+          </div>
+          <button class="btn-encode" id="btnDecode">DECODE</button>
+        </div>
+        <div class="status-bar" id="decodeStatus">
+          <div class="spinner"></div>
+          <span id="decodeStatusMsg"></span>
+        </div>
+      </div>
+
+      <!-- Distance Between Points -->
+      <div class="panel-section">
+        <div class="sec-label">Distance Between Points</div>
+        <p class="tool-desc">
+          Drop a primary pin first, then click below to drop a second pin.
+        </p>
+        <button class="btn-gps" id="btnSecondPin" style="background:var(--accent2);box-shadow:0 2px 8px rgba(240,68,56,0.3)">
+          <span>&#9678;</span><span id="btnSecondText">DROP SECOND PIN</span>
+        </button>
+        <div id="distanceResult" class="tool-result" style="display:none">
+          <div class="meta-grid" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <div class="meta-item">
+              <div class="meta-label">Distance</div>
+              <div class="meta-value" id="distValue">&mdash;</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-label">Bearing</div>
+              <div class="meta-value" id="bearValue">&mdash;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nearby Landmarks -->
+      <div class="panel-section">
+        <div class="sec-label">Nearby Landmarks</div>
+        <div id="landmarksContent">
+          <p class="tool-desc">Drop a pin to see nearby features.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ Tab: Share ═══ -->
+    <div class="tab-content" id="tabShare" data-tab="share">
+
+      <!-- Share Location Link -->
+      <div class="panel-section" id="shareLinkSection">
+        <div class="sec-label">Share Location Link</div>
+        <div id="shareLinkContent">
+          <p class="tool-desc">Drop a pin to generate a share link.</p>
+        </div>
+      </div>
+
+      <!-- QR Code -->
+      <div class="panel-section" id="qrSection">
+        <div class="sec-label">QR Code</div>
+        <div id="qrContent" style="text-align:center;padding:0.5rem 0">
+          <p class="tool-desc">Drop a pin to generate a QR code.</p>
+        </div>
+      </div>
+
+      <!-- Copy Formatted Card -->
+      <div class="panel-section" id="copyCardSection">
+        <div class="sec-label">Copy Formatted Card</div>
+        <div class="card-preview" id="cardPreview">Drop a pin to generate a card.</div>
+        <button class="btn-gps" id="btnCopyCard" style="font-size:0.62rem">
+          COPY CARD TO CLIPBOARD
+        </button>
+      </div>
+
+      <!-- Emergency Card -->
+      <div class="panel-section" id="emergencySection">
+        <div class="sec-label">Emergency Location Card</div>
+        <p class="tool-desc">
+          Print a card with your location details for emergency reference.
+          Keep in glove box, on fridge, or in wallet.
+        </p>
+        <button class="btn-gps" id="btnEmergency" style="background:var(--accent2);box-shadow:0 2px 8px rgba(240,68,56,0.3);font-size:0.62rem">
+          &#128680; GENERATE EMERGENCY CARD
+        </button>
+      </div>
+
+    </div>
+
+  </aside>
+
+  <!-- Map -->
+  <div class="map-panel">
+    <div class="map-tip" id="mapTip">Click anywhere to pin a location</div>
+    <div class="sat-label" id="satLabel">ESRI WORLD IMAGERY</div>
+    <div id="map"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">COPIED</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+// Open Location Code encoder + decoder
+// ═══════════════════════════════════════════════
+const OLC = (() => {
+  const AB = '23456789CFGHJMPQRVWX', BASE = 20, LATMAX = 90, LONMAX = 180;
+  function norm(lon) { while (lon < -LONMAX) lon += 360; while (lon >= LONMAX) lon -= 360; return lon; }
+
+  function encode(lat, lon, len = 10) {
+    lat = Math.min(LATMAX, Math.max(-LATMAX, lat));
+    lon = norm(lon);
+    if (lat === LATMAX) lat -= 0.9 * Math.pow(20, Math.floor(len / -2 + 2));
+    let lv = Math.floor((lat + LATMAX) * 8000 + 0.5);
+    let nv = Math.floor((lon + LONMAX) * 8000 + 0.5);
+    let code = '';
+    for (let i = 0; i < Math.ceil(len / 2); i++) {
+      code = AB[nv % BASE] + code;
+      code = AB[lv % BASE] + code;
+      lv = Math.floor(lv / BASE);
+      nv = Math.floor(nv / BASE);
+      if (i === 0) code = '+' + code;
+    }
+    return code.substring(0, len + 1);
+  }
+
+  function charVal(c) {
+    if (c === '0') return 10; // padding → center
+    const idx = AB.indexOf(c);
+    return idx >= 0 ? idx : -1;
+  }
+
+  function decode(code) {
+    code = code.toUpperCase().replace(/\+/g, '');
+    let lv = 0, nv = 0;
+    const pairs = Math.min(Math.floor(code.length / 2), 5);
+    for (let i = 0; i < pairs; i++) {
+      const lIdx = charVal(code[i * 2]);
+      const nIdx = charVal(code[i * 2 + 1]);
+      if (lIdx < 0 || nIdx < 0) return null;
+      lv = lv * BASE + lIdx;
+      nv = nv * BASE + nIdx;
+    }
+    for (let i = pairs; i < 5; i++) {
+      lv = lv * BASE + 10;
+      nv = nv * BASE + 10;
+    }
+    return { lat: lv / 8000 - LATMAX, lon: nv / 8000 - LONMAX };
+  }
+
+  function isValid(code) {
+    code = code.toUpperCase().trim();
+    const plusIdx = code.indexOf('+');
+    if (plusIdx < 2 || plusIdx > 8 || plusIdx % 2 !== 0) return false;
+    const chars = code.replace('+', '');
+    return [...chars].every(c => AB.includes(c) || c === '0');
+  }
+
+  return { encode, decode, isValid };
+})();
+
+// ═══════════════════════════════════════════════
+// Central state
+// ═══════════════════════════════════════════════
+const State = {
+  lat: null, lon: null, accuracy: null,
+  plusCode: null, address: null, elevation: null, w3w: null,
+  secondPin: null
+};
+
+// ═══════════════════════════════════════════════
+// Tile layers
+// ═══════════════════════════════════════════════
+const layers = {
+  street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }),
+  satellite: L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; <a href="https://www.esri.com">Esri</a> — Source: Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19
+  })
+};
+
+// ═══════════════════════════════════════════════
+// Map init
+// ═══════════════════════════════════════════════
+const map = L.map('map', { zoomControl: true }).setView([56, -96], 4);
+layers.street.addTo(map);
+let currentLayer = 'street';
+
+// ═══════════════════════════════════════════════
+// Layer switcher
+// ═══════════════════════════════════════════════
+const satLabel = document.getElementById('satLabel');
+
+window.setLayer = function(name) {
+  if (name === currentLayer) return;
+  map.removeLayer(layers[currentLayer]);
+  map.addLayer(layers[name]);
+  currentLayer = name;
+  document.getElementById('btnStreet').classList.toggle('active', name === 'street');
+  document.getElementById('btnSat').classList.toggle('active', name === 'satellite');
+  satLabel.classList.toggle('visible', name === 'satellite');
+};
+
+// ═══════════════════════════════════════════════
+// Custom markers
+// ═══════════════════════════════════════════════
+function markerIcon(fill, stroke) {
+  stroke = stroke || '#fff';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+    <filter id="s"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.3"/></filter>
+    <path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z"
+      fill="${fill}" stroke="${stroke}" stroke-width="1.5" filter="url(#s)"/>
+    <circle cx="14" cy="14" r="5.5" fill="rgba(0,0,0,0.25)"/>
+    <circle cx="14" cy="14" r="3.5" fill="${stroke}"/>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38] });
+}
+
+let selMarker = null, gpsMarker = null, gpsCircle = null;
+let secondMarker = null, distanceLine = null, isPlacingSecondPin = false;
+
+// ═══════════════════════════════════════════════
+// DOM refs
+// ═══════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const btnGPS    = $('btnGPS'),   btnText  = $('btnText');
+const btnManual = $('btnManual'),latInput = $('latInput'), lonInput = $('lonInput');
+const statusEl  = $('status'),   statusMsg= $('statusMsg');
+const resultBlk = $('resultBlock');
+const codeDisp  = $('codeDisplay');
+const addrText  = $('addrText');
+const metaLat   = $('metaLat'),  metaLon = $('metaLon'), metaAcc = $('metaAcc');
+const accBadge  = $('accBadge');
+const mapsLink  = $('mapsLink'), osmLink = $('osmLink'), plusLink = $('plusLink');
+const btnCopy   = $('btnCopy'),  mapTip  = $('mapTip'),  toast   = $('toast');
+
+// ═══════════════════════════════════════════════
+// Tab switching
+// ═══════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === name));
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ═══════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════
+function showStatus(msg, type) { statusEl.className = 'status-bar ' + type; statusMsg.textContent = msg; }
+function hideStatus() { statusEl.className = 'status-bar'; }
+
+function showToolStatus(elId, msg, type) {
+  const el = $(elId);
+  el.className = 'status-bar ' + type;
+  $(elId.replace('Status', 'StatusMsg')).textContent = msg;
+}
+function hideToolStatus(elId) { $(elId).className = 'status-bar'; }
+
+function accInfo(acc) {
+  if (!acc)       return { text: 'Map / Manual',           cls: 'acc-med' };
+  if (acc <= 10)  return { text: `High (${Math.round(acc)} m)`,  cls: 'acc-high' };
+  if (acc <= 100) return { text: `Med (${Math.round(acc)} m)`,   cls: 'acc-med' };
+  return           { text: `Low (${Math.round(acc)} m)`,   cls: 'acc-low' };
+}
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function copyCode() {
+  const c = codeDisp.textContent;
+  if (!c || c === '\u2014') return;
+  navigator.clipboard.writeText(c).then(() => showToast('COPIED TO CLIPBOARD'));
+}
+
+// ═══════════════════════════════════════════════
+// Geo math utilities
+// ═══════════════════════════════════════════════
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function calculateBearing(lat1, lon1, lat2, lon2) {
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+    Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+  return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+}
+
+function compassDir(deg) {
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+// ═══════════════════════════════════════════════
+// Nominatim reverse geocode (refactored for State)
+// ═══════════════════════════════════════════════
+async function reverseGeocode(lat, lon) {
+  addrText.className = 'addr-text';
+  addrText.innerHTML = '<span style="color:var(--muted);font-family:var(--mono);font-size:0.67rem">Looking up address\u2026</span>';
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=en`,
+      { headers: { 'User-Agent': 'NorthPin/1.0' } }
+    );
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    if (!data || data.error) { noAddress(); render911Check(null); return; }
+
+    const a = data.address || {};
+    const streetNum = a.house_number || '';
+    const road      = a.road || a.pedestrian || a.footway || '';
+    const street    = streetNum && road ? `${streetNum} ${road}` : road;
+    const locality  = a.suburb || a.neighbourhood || a.hamlet || a.village || '';
+    const city      = a.city || a.town || a.municipality || '';
+    const county    = a.county || '';
+    const province  = a.state || '';
+    const country   = a.country || '';
+    const postal    = a.postcode || '';
+
+    // Store in State
+    State.address = { streetNum, road, street, locality, city, county, province, country, postal };
+
+    const richParts = [street, locality, city].filter(Boolean);
+
+    if (richParts.length === 0) {
+      const sparse = [county, province, country].filter(Boolean).join(', ');
+      addrText.className = 'addr-text no-addr';
+      addrText.innerHTML = `<span>\u26A0</span><span>No civic address \u2014 ${sparse || 'remote location'}.<br>Use Plus Code as the precise reference.</span>`;
+      render911Check(State.address);
+      return;
+    }
+
+    const line1 = [street, locality].filter(Boolean).join(', ');
+    const line2 = [city || county, province, postal, country].filter(Boolean).join(', ');
+
+    addrText.className = 'addr-text';
+    addrText.innerHTML = line1
+      ? `<strong style="color:var(--text)">${line1}</strong>${line2 ? `<br><span style="color:var(--muted);font-size:0.76rem">${line2}</span>` : ''}`
+      : `<strong style="color:var(--text)">${line2}</strong>`;
+
+    render911Check(State.address);
+
+  } catch {
+    addrText.className = 'addr-text';
+    addrText.innerHTML = '<span style="color:var(--muted);font-family:var(--mono);font-size:0.66rem">Address lookup unavailable.</span>';
+    render911Check(null);
+  }
+}
+
+function noAddress() {
+  addrText.className = 'addr-text no-addr';
+  addrText.innerHTML = `<span>\u26A0</span><span>No civic address found \u2014 remote or rural location.<br>The Plus Code is the best reference for this spot.</span>`;
+}
+
+// ═══════════════════════════════════════════════
+// Feature: 911 Civic Address Checker
+// ═══════════════════════════════════════════════
+function render911Check(addr) {
+  const zone = $('zone911');
+  const text = $('addr911Text');
+  zone.style.display = 'block';
+
+  if (addr && addr.streetNum && addr.road && addr.city) {
+    text.className = 'addr-text addr-ok';
+    text.innerHTML = `<span>\u2713</span><span>This location has a recognized civic address that should be 911-dispatchable.</span>`;
+  } else {
+    text.className = 'addr-text no-addr';
+    text.innerHTML = `<span>\u26A0</span><span><strong>No 911 civic address detected.</strong><br>This location may not be recognized by emergency dispatch. Provide the Plus Code and GPS coordinates to dispatchers.<br><em style="font-size:0.62rem">Contact your municipality to request a civic address assignment.</em></span>`;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Elevation Display
+// ═══════════════════════════════════════════════
+async function fetchElevation(lat, lon) {
+  const el = $('metaElev');
+  el.textContent = '\u2026';
+  try {
+    const resp = await fetch(
+      `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`
+    );
+    const data = await resp.json();
+    const elev = data.elevation?.[0];
+    State.elevation = elev;
+    el.textContent = elev != null ? `${Math.round(elev)} m` : 'N/A';
+  } catch {
+    State.elevation = null;
+    el.textContent = 'N/A';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Feature: What3Words Link
+// ═══════════════════════════════════════════════
+const W3W_API_KEY = ''; // Optional: set your API key
+
+function updateW3WLink(lat, lon) {
+  const el = $('metaW3W');
+  if (W3W_API_KEY) {
+    el.innerHTML = '<span style="color:var(--muted)">\u2026</span>';
+    fetch(`https://api.what3words.com/v3/convert-to-3wa?coordinates=${lat},${lon}&key=${W3W_API_KEY}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.words) {
+          State.w3w = data.words;
+          el.innerHTML = `<a href="https://what3words.com/${data.words}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:0.65rem">///${data.words}</a>`;
+        } else {
+          el.innerHTML = w3wFallback(lat, lon);
+        }
+      })
+      .catch(() => { el.innerHTML = w3wFallback(lat, lon); });
+  } else {
+    el.innerHTML = w3wFallback(lat, lon);
+  }
+}
+
+function w3wFallback(lat, lon) {
+  return `<a href="https://what3words.com/${lat.toFixed(6)},${lon.toFixed(6)}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:0.62rem">Open in W3W \u2197</a>`;
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Share via Link (URL hash)
+// ═══════════════════════════════════════════════
+function updateShareURL(lat, lon) {
+  const zoom = map.getZoom();
+  const hash = `#lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}&z=${zoom}`;
+  history.replaceState(null, '', hash);
+
+  const fullURL = location.href.split('#')[0] + hash;
+  $('shareLinkContent').innerHTML = `
+    <div class="share-url-row">
+      <input readonly value="${fullURL}" id="shareURLInput" class="share-url-input">
+      <button class="btn-encode" onclick="navigator.clipboard.writeText(document.getElementById('shareURLInput').value).then(()=>showToast('LINK COPIED'))">COPY</button>
+    </div>`;
+}
+
+function loadFromHash() {
+  if (!location.hash) return;
+  const params = new URLSearchParams(location.hash.slice(1));
+  const lat = parseFloat(params.get('lat'));
+  const lon = parseFloat(params.get('lon'));
+  const z = parseInt(params.get('z')) || 17;
+  if (!isNaN(lat) && !isNaN(lon)) {
+    map.setView([lat, lon], z);
+    renderResult(lat, lon, null, false);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Feature: QR Code Generator
+// ═══════════════════════════════════════════════
+function updateQRCode() {
+  const container = $('qrContent');
+  container.innerHTML = '';
+  if (!State.plusCode) {
+    container.innerHTML = '<p class="tool-desc">Drop a pin to generate a QR code.</p>';
+    return;
+  }
+  const qrDiv = document.createElement('div');
+  qrDiv.style.display = 'inline-block';
+  container.appendChild(qrDiv);
+
+  try {
+    new QRCode(qrDiv, {
+      text: `https://plus.codes/${State.plusCode}`,
+      width: 160, height: 160,
+      colorDark: '#111827', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch {
+    container.innerHTML = '<p class="tool-desc">QR generation unavailable.</p>';
+    return;
+  }
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'btn-action';
+  dlBtn.style.marginTop = '0.5rem';
+  dlBtn.textContent = '\u2193 Download QR';
+  dlBtn.onclick = () => {
+    const canvas = qrDiv.querySelector('canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `NorthPin-${State.plusCode.replace('+', '')}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  };
+  container.appendChild(document.createElement('br'));
+  container.appendChild(dlBtn);
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Copy Formatted Card
+// ═══════════════════════════════════════════════
+function updateCopyCard() {
+  const preview = $('cardPreview');
+  if (!State.plusCode) {
+    preview.textContent = 'Drop a pin to generate a card.';
+    return;
+  }
+  const addr = State.address;
+  const lines = [
+    `PLUS CODE: ${State.plusCode}`,
+    `GPS: ${State.lat.toFixed(6)}, ${State.lon.toFixed(6)}`,
+  ];
+  if (addr) {
+    const addrLine = [addr.street, addr.city, addr.province].filter(Boolean).join(', ');
+    if (addrLine) lines.push(`ADDR: ${addrLine}`);
+  }
+  if (State.elevation != null) lines.push(`ELEV: ${Math.round(State.elevation)} m`);
+  lines.push(`MAP: https://plus.codes/${State.plusCode}`);
+  lines.push(`-- Generated by NorthPin`);
+  preview.textContent = lines.join('\n');
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Emergency Card Generator
+// ═══════════════════════════════════════════════
+function generateEmergencyCard() {
+  if (!State.plusCode) { showToast('DROP A PIN FIRST'); return; }
+  const addr = State.address;
+  const addrLine = addr ? [addr.street, addr.city, addr.province, addr.postal].filter(Boolean).join(', ') : 'No civic address';
+  const mapURL = `https://www.openstreetmap.org/export/embed.html?bbox=${State.lon - 0.005},${State.lat - 0.003},${State.lon + 0.005},${State.lat + 0.003}&layer=mapnik&marker=${State.lat},${State.lon}`;
+
+  const html = `<!DOCTYPE html><html><head><title>Emergency Location Card - NorthPin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Syne',sans-serif;padding:1in;background:#fff}
+.card{border:3px solid #e63946;border-radius:12px;padding:1.5rem;max-width:5in}
+.card-header{background:#e63946;color:#fff;padding:0.5rem 1rem;border-radius:6px;font-size:1.1rem;font-weight:800;text-align:center;margin-bottom:1rem}
+.field{margin-bottom:0.6rem}
+.label{font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;color:#9ca3af;text-transform:uppercase}
+.value{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;color:#111827}
+.value.big{font-size:1.6rem;color:#0062ff;letter-spacing:0.12em}
+.map-frame{width:100%;height:200px;border:1px solid #e2e5ea;border-radius:8px;margin:0.75rem 0}
+.footer{font-family:'Space Mono',monospace;font-size:0.55rem;color:#9ca3af;text-align:center;margin-top:1rem}
+@media print{body{padding:0.5in}}
+</style></head><body>
+<div class="card">
+<div class="card-header">EMERGENCY LOCATION CARD</div>
+<div class="field"><div class="label">Plus Code</div><div class="value big">${State.plusCode}</div></div>
+<div class="field"><div class="label">GPS Coordinates</div><div class="value">${State.lat.toFixed(6)}, ${State.lon.toFixed(6)}</div></div>
+<div class="field"><div class="label">Address</div><div class="value">${addrLine}</div></div>
+${State.elevation != null ? `<div class="field"><div class="label">Elevation</div><div class="value">${Math.round(State.elevation)} m</div></div>` : ''}
+<iframe class="map-frame" src="${mapURL}" frameborder="0"></iframe>
+<div class="footer">Generated by NorthPin &middot; ${new Date().toLocaleDateString()}<br>Give this code to 911: ${State.plusCode} &middot; ${State.lat.toFixed(4)}, ${State.lon.toFixed(4)}</div>
+</div>
+<script>setTimeout(()=>window.print(),1000)<\/script>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Nearby Landmarks (Overpass API)
+// ═══════════════════════════════════════════════
+async function fetchNearbyLandmarks(lat, lon) {
+  const el = $('landmarksContent');
+  el.innerHTML = '<span class="tool-desc">Searching nearby\u2026</span>';
+  try {
+    const query = `[out:json][timeout:10];(
+      node["amenity"]["name"](around:1000,${lat},${lon});
+      node["tourism"]["name"](around:1000,${lat},${lon});
+      node["shop"]["name"](around:1000,${lat},${lon});
+      node["leisure"]["name"](around:1000,${lat},${lon});
+      way["building"]["name"](around:1000,${lat},${lon});
+    );out center 8;`;
+    const resp = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query)
+    });
+    const data = await resp.json();
+
+    const features = data.elements
+      .filter(e => e.tags?.name)
+      .map(e => {
+        const fLat = e.lat || e.center?.lat;
+        const fLon = e.lon || e.center?.lon;
+        const dist = haversineDistance(lat, lon, fLat, fLon);
+        const type = e.tags.amenity || e.tags.shop || e.tags.tourism || e.tags.leisure || e.tags.building || 'feature';
+        return { name: e.tags.name, type, dist };
+      })
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 5);
+
+    if (!features.length) {
+      el.innerHTML = '<span class="tool-desc">No named features within 1 km.</span>';
+      return;
+    }
+    el.innerHTML = features.map(f => `
+      <div class="landmark-item">
+        <strong style="color:var(--text)">${f.name}</strong>
+        <span style="color:var(--muted)"> &middot; ${f.type} &middot; ${Math.round(f.dist)} m</span>
+      </div>
+    `).join('');
+  } catch {
+    el.innerHTML = '<span class="tool-desc">Landmark search unavailable.</span>';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Search by Address
+// ═══════════════════════════════════════════════
+async function searchAddress() {
+  const query = $('searchInput').value.trim();
+  if (!query) return;
+  showToolStatus('searchStatus', 'Searching\u2026', 'loading');
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`,
+      { headers: { 'User-Agent': 'NorthPin/1.0' } }
+    );
+    const results = await resp.json();
+    if (!results.length) {
+      showToolStatus('searchStatus', 'No results found.', 'error');
+      return;
+    }
+    hideToolStatus('searchStatus');
+    const r = results[0];
+    switchTab('locate');
+    renderResult(parseFloat(r.lat), parseFloat(r.lon), null, true);
+  } catch {
+    showToolStatus('searchStatus', 'Search failed.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Decode Plus Code
+// ═══════════════════════════════════════════════
+function decodePlusCode() {
+  const input = $('decodeInput').value.trim().toUpperCase();
+  if (!OLC.isValid(input)) {
+    showToolStatus('decodeStatus', 'Invalid Plus Code format.', 'error');
+    return;
+  }
+  const result = OLC.decode(input);
+  if (!result) {
+    showToolStatus('decodeStatus', 'Could not decode.', 'error');
+    return;
+  }
+  hideToolStatus('decodeStatus');
+  switchTab('locate');
+  renderResult(result.lat, result.lon, null, true);
+}
+
+// ═══════════════════════════════════════════════
+// Feature: Distance Between Two Points
+// ═══════════════════════════════════════════════
+function enableSecondPin() {
+  if (State.lat == null) { showToast('DROP A PIN FIRST'); return; }
+  isPlacingSecondPin = true;
+  $('btnSecondText').textContent = 'CLICK MAP FOR 2ND PIN\u2026';
+}
+
+function placeSecondPin(lat2, lon2) {
+  isPlacingSecondPin = false;
+  $('btnSecondText').textContent = 'DROP SECOND PIN';
+  State.secondPin = { lat: lat2, lon: lon2 };
+
+  if (secondMarker) map.removeLayer(secondMarker);
+  if (distanceLine) map.removeLayer(distanceLine);
+
+  secondMarker = L.marker([lat2, lon2], { icon: markerIcon('#d97706', '#fff') }).addTo(map);
+  distanceLine = L.polyline([[State.lat, State.lon], [lat2, lon2]], {
+    color: '#0062ff', weight: 2, dashArray: '8 4'
+  }).addTo(map);
+
+  const dist = haversineDistance(State.lat, State.lon, lat2, lon2);
+  const bearing = calculateBearing(State.lat, State.lon, lat2, lon2);
+
+  $('distValue').textContent = dist < 1000 ? `${Math.round(dist)} m` : `${(dist / 1000).toFixed(2)} km`;
+  $('bearValue').textContent = `${Math.round(bearing)}\u00B0 ${compassDir(bearing)}`;
+  $('distanceResult').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════
+// Core render
+// ═══════════════════════════════════════════════
+function renderResult(lat, lon, accuracyM, panMap) {
+  const code = OLC.encode(lat, lon, 10);
+  const { text, cls } = accInfo(accuracyM);
+
+  // Update State
+  State.lat = lat;
+  State.lon = lon;
+  State.accuracy = accuracyM;
+  State.plusCode = code;
+  State.address = null;
+  State.elevation = null;
+
+  codeDisp.textContent = code;
+  metaLat.textContent  = lat.toFixed(6) + '\u00B0';
+  metaLon.textContent  = lon.toFixed(6) + '\u00B0';
+  metaAcc.textContent  = accuracyM ? `${Math.round(accuracyM)} m` : 'Map / Manual';
+  accBadge.textContent = text;
+  accBadge.className   = `acc-badge ${cls}`;
+
+  mapsLink.href = `https://www.google.com/maps?q=${lat},${lon}`;
+  osmLink.href  = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}&zoom=17`;
+  plusLink.href = `https://plus.codes/${code}`;
+
+  latInput.value = lat.toFixed(6);
+  lonInput.value = lon.toFixed(6);
+
+  resultBlk.classList.add('visible');
+  hideStatus();
+
+  // Selected marker — red pin
+  if (selMarker) map.removeLayer(selMarker);
+  selMarker = L.marker([lat, lon], { icon: markerIcon('#e63946', '#fff') })
+    .addTo(map)
+    .bindPopup(
+      `<div style="padding:8px 10px;font-family:monospace;font-size:11px;line-height:1.7;min-width:160px">
+        <div style="font-size:13px;font-weight:700;color:#0062ff;letter-spacing:0.1em">${code}</div>
+        <div style="color:#6b7280;margin-top:2px">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>
+        <div style="margin-top:6px;font-size:10px;color:#9ca3af">Click to copy code</div>
+       </div>`,
+      { className: '' }
+    )
+    .openPopup();
+
+  selMarker.on('popupopen', () => {
+    const popup = selMarker.getPopup().getElement();
+    if (popup) popup.style.cursor = 'pointer';
+    selMarker.getPopup().getElement()?.addEventListener('click', copyCode);
+  });
+
+  if (panMap) map.setView([lat, lon], Math.max(map.getZoom(), 17), { animate: true, duration: 0.7 });
+
+  mapTip.classList.add('hidden');
+  setTimeout(() => { mapTip.style.display = 'none'; }, 400);
+
+  // Feature hooks
+  reverseGeocode(lat, lon);
+  fetchElevation(lat, lon);
+  updateW3WLink(lat, lon);
+  updateShareURL(lat, lon);
+  updateQRCode();
+  updateCopyCard();
+  fetchNearbyLandmarks(lat, lon);
+}
+
+// ═══════════════════════════════════════════════
+// Map click
+// ═══════════════════════════════════════════════
+map.on('click', e => {
+  if (isPlacingSecondPin) {
+    placeSecondPin(e.latlng.lat, e.latlng.lng);
+  } else {
+    renderResult(e.latlng.lat, e.latlng.lng, null, false);
+  }
+});
+
+// ═══════════════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════════════
+btnGPS.addEventListener('click', () => {
+  if (!navigator.geolocation) { showStatus('Geolocation not supported.', 'error'); return; }
+  btnGPS.disabled = true;
+  btnText.textContent = 'ACQUIRING\u2026';
+  showStatus('Acquiring GPS signal\u2026', 'loading');
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    btnGPS.disabled = false;
+    btnText.textContent = 'USE MY LOCATION';
+    const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+
+    if (gpsCircle) map.removeLayer(gpsCircle);
+    if (gpsMarker) map.removeLayer(gpsMarker);
+
+    gpsCircle = L.circle([lat, lon], {
+      radius: accuracy,
+      color: '#0062ff', fillColor: '#0062ff', fillOpacity: 0.08,
+      weight: 1.5, dashArray: '5 4'
+    }).addTo(map);
+
+    gpsMarker = L.marker([lat, lon], { icon: markerIcon('#0062ff', '#fff'), zIndexOffset: 100 })
+      .addTo(map)
+      .bindTooltip('Your GPS location', { permanent: false });
+
+    renderResult(lat, lon, accuracy, true);
+
+  }, err => {
+    btnGPS.disabled = false;
+    btnText.textContent = 'USE MY LOCATION';
+    const msgs = { 1: 'Location access denied.', 2: 'Position unavailable.', 3: 'GPS request timed out.' };
+    showStatus(msgs[err.code] || 'Unknown error.', 'error');
+  }, { enableHighAccuracy: true, timeout: 14000, maximumAge: 0 });
+});
+
+// ═══════════════════════════════════════════════
+// Manual encode
+// ═══════════════════════════════════════════════
+btnManual.addEventListener('click', () => {
+  const lat = parseFloat(latInput.value);
+  const lon = parseFloat(lonInput.value);
+  if (isNaN(lat) || isNaN(lon)) { showStatus('Enter valid latitude and longitude.', 'error'); return; }
+  if (lat < -90 || lat > 90)   { showStatus('Latitude must be \u221290 to 90.', 'error'); return; }
+  if (lon < -180 || lon > 180) { showStatus('Longitude must be \u2212180 to 180.', 'error'); return; }
+  hideStatus();
+  renderResult(lat, lon, null, true);
+});
+
+[latInput, lonInput].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') btnManual.click(); }));
+
+// ═══════════════════════════════════════════════
+// Event listeners for new features
+// ═══════════════════════════════════════════════
+codeDisp.addEventListener('click', copyCode);
+btnCopy.addEventListener('click', copyCode);
+
+$('btnSearch').addEventListener('click', searchAddress);
+$('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') searchAddress(); });
+
+$('btnDecode').addEventListener('click', decodePlusCode);
+$('decodeInput').addEventListener('keydown', e => { if (e.key === 'Enter') decodePlusCode(); });
+
+$('btnSecondPin').addEventListener('click', enableSecondPin);
+
+$('btnCopyCard').addEventListener('click', () => {
+  const text = $('cardPreview').textContent;
+  if (!text || text.startsWith('Drop')) return;
+  navigator.clipboard.writeText(text).then(() => showToast('CARD COPIED'));
+});
+
+$('btnEmergency').addEventListener('click', generateEmergencyCard);
+
+// ═══════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════
+setTimeout(() => {
+  map.invalidateSize();
+  loadFromHash();
+}, 150);
+</script>
+</body>
+</html>
