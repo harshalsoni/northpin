@@ -656,8 +656,7 @@ function renderResult(lat, lon, accuracyM, panMap) {
         <div style="margin-top:6px;font-size:10px;color:#9ca3af">Click to copy code</div>
        </div>`,
       { className: '' }
-    )
-    .openPopup();
+    );
 
   // Clicking popup copies code
   selMarker.on('popupopen', () => {
@@ -665,6 +664,8 @@ function renderResult(lat, lon, accuracyM, panMap) {
     if (popup) popup.style.cursor = 'pointer';
     selMarker.getPopup().getElement()?.addEventListener('click', copyCode);
   });
+
+  selMarker.openPopup();
 
   if (panMap) map.setView([lat, lon], Math.max(map.getZoom(), 17), { animate: true, duration: 0.7 });
 
