@@ -125,12 +125,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .tab-btn {
   flex: 1;
-  padding: 0.6rem 0.4rem;
+  padding: 0.75rem 0.4rem;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   font-family: var(--mono);
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -138,6 +138,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
+  min-height: 44px;
 }
 .tab-btn:hover { color: var(--text2); }
 .tab-btn.active {
@@ -156,13 +157,14 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 /* GPS button */
 .btn-gps {
-  width: 100%; padding: 0.75rem 1rem;
+  width: 100%; padding: 0.9rem 1rem;
   background: var(--accent); color: #fff; border: none; border-radius: 8px;
-  font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+  font-family: var(--mono); font-size: 0.78rem; font-weight: 700;
   letter-spacing: 0.08em; text-transform: uppercase;
   cursor: pointer; transition: all 0.2s;
   display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   box-shadow: 0 2px 8px rgba(0,98,255,0.3);
+  min-height: 48px;
 }
 .btn-gps:hover { background: #0052d4; box-shadow: 0 4px 14px rgba(0,98,255,0.4); transform: translateY(-1px); }
 .btn-gps:active { transform: translateY(0); }
@@ -237,10 +239,11 @@ input.coord-input.text-input { padding-left: 0.55rem; }
   background: var(--surface);
 }
 .plus-code-big {
-  font-family: var(--mono); font-size: 1.85rem; font-weight: 700;
+  font-family: var(--mono); font-size: 2.1rem; font-weight: 700;
   letter-spacing: 0.14em; color: var(--accent);
   cursor: pointer; transition: color 0.2s, transform 0.15s;
   display: inline-block; word-break: break-all;
+  padding: 0.3rem 0;
 }
 .plus-code-big:hover { color: #0052d4; transform: scale(1.02); }
 .copy-hint { font-family: var(--mono); font-size: 0.56rem; color: var(--muted); margin-top: 0.25rem; }
@@ -268,20 +271,73 @@ input.coord-input.text-input { padding-left: 0.55rem; }
 .meta-item:nth-child(odd) { border-right: 1px solid var(--border); }
 .meta-item:nth-child(n+3) { border-top: 1px solid var(--border); }
 .meta-label { font-family: var(--mono); font-size: 0.54rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.2rem; }
-.meta-value { font-family: var(--mono); font-size: 0.7rem; color: var(--text2); font-weight: 700; }
+.meta-value { font-family: var(--mono); font-size: 0.75rem; color: var(--text2); font-weight: 700; }
 
 /* Actions */
 .action-row { padding: 0.7rem 1.1rem; display: flex; gap: 0.4rem; flex-wrap: wrap; background: var(--panel-bg); border-bottom: 1px solid var(--border); }
 .btn-action {
-  flex: 1; min-width: 70px; padding: 0.4rem 0.35rem;
+  flex: 1; min-width: 70px; padding: 0.55rem 0.45rem;
   background: var(--surface); border: 1px solid var(--border2); border-radius: 6px;
   color: var(--text2); font-family: var(--mono); font-size: 0.58rem;
   letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
   transition: all 0.18s; text-align: center; text-decoration: none;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow); min-height: 44px;
 }
 .btn-action:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+
+/* ── Emergency action button ── */
+.emergency-action {
+  padding: 0.85rem 1.1rem;
+  background: #fef2f2;
+  border-bottom: 1px solid #fca5a5;
+}
+.btn-emergency {
+  width: 100%;
+  padding: 1rem 1.2rem;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--mono);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+  position: relative;
+  overflow: hidden;
+  min-height: 56px;
+}
+.btn-emergency:hover {
+  background: #b91c1c;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+  transform: translateY(-1px);
+}
+.btn-emergency:active { transform: translateY(0); }
+.btn-emergency:focus-visible { outline: 3px solid #fca5a5; outline-offset: 2px; }
+.emergency-icon { font-size: 1.4rem; line-height: 1; }
+.emergency-label { font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.emergency-sub { font-size: 0.58rem; letter-spacing: 0.06em; opacity: 0.8; font-weight: 400; }
+.btn-emergency::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 12px;
+  border: 2px solid rgba(220, 38, 38, 0.5);
+  animation: emergencyPulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes emergencyPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
+}
+
+/* Mobile floating emergency button */
+.mobile-emergency-fab { display: none; }
 
 /* Tools / Share section helpers */
 .tool-desc {
@@ -380,12 +436,63 @@ input.coord-input.text-input { padding-left: 0.55rem; }
 /* Responsive */
 @media (max-width: 768px) {
   html, body { overflow: auto; }
-  .app { grid-template-columns: 1fr; grid-template-rows: 56px auto 1fr; height: auto; min-height: 100vh; }
-  .panel { overflow-y: auto; border-right: none; border-bottom: 1px solid var(--border); max-height: 60vh; }
-  .map-panel { min-height: 320px; }
-  #map { min-height: 320px; }
+  .app { grid-template-columns: 1fr; grid-template-rows: 50px auto 1fr; height: auto; min-height: 100vh; }
+  .topbar { padding: 0 0.75rem; }
+  .panel {
+    overflow-y: auto; border-right: none; border-bottom: 1px solid var(--border);
+    max-height: 65vh; -webkit-overflow-scrolling: touch;
+  }
+  .map-panel { min-height: 280px; }
+  #map { min-height: 280px; }
   .hint-pill { display: none; }
   .tab-bar { position: sticky; top: 0; z-index: 10; }
+
+  .plus-code-big { font-size: 1.65rem; padding: 0.4rem 0; }
+  .meta-value { font-size: 0.72rem; }
+
+  .btn-action {
+    flex: 1 1 calc(50% - 0.2rem); min-height: 48px; font-size: 0.64rem;
+  }
+  .action-row { gap: 0.5rem; padding: 0.8rem 1.1rem; }
+
+  .btn-gps { padding: 1rem; font-size: 0.82rem; min-height: 52px; }
+  .btn-emergency { padding: 1.1rem 1.2rem; min-height: 60px; }
+  .emergency-label { font-size: 0.82rem; }
+
+  input.coord-input { padding: 0.7rem 0.45rem 0.7rem 2rem; font-size: 0.75rem; min-height: 44px; }
+  .btn-encode { padding: 0.7rem 1rem; min-height: 44px; }
+  .panel-section { padding: 1.1rem 1rem; }
+  .tab-btn { padding: 0.8rem 0.4rem; font-size: 0.64rem; min-height: 48px; }
+  .layer-btn { padding: 0.4rem 0.65rem; font-size: 0.6rem; min-height: 36px; }
+
+  /* Mobile floating emergency button */
+  .mobile-emergency-fab {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9998;
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: 28px;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.5);
+    cursor: pointer;
+    min-height: 48px;
+    white-space: nowrap;
+  }
+  .mobile-emergency-fab:active { transform: translateX(-50%) scale(0.97); }
+}
+
+/* Focus-visible for keyboard navigation */
+button:focus-visible, a.btn-action:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
@@ -421,19 +528,19 @@ input.coord-input.text-input { padding-left: 0.55rem; }
   <aside class="panel">
 
     <!-- Tab bar -->
-    <div class="tab-bar">
-      <button class="tab-btn active" data-tab="locate">Locate</button>
-      <button class="tab-btn" data-tab="tools">Tools</button>
-      <button class="tab-btn" data-tab="share">Share</button>
+    <div class="tab-bar" role="tablist" aria-label="Application tabs">
+      <button class="tab-btn active" data-tab="locate" role="tab" aria-selected="true" aria-controls="tabLocate">Locate</button>
+      <button class="tab-btn" data-tab="tools" role="tab" aria-selected="false" aria-controls="tabTools">Tools</button>
+      <button class="tab-btn" data-tab="share" role="tab" aria-selected="false" aria-controls="tabShare">Share</button>
     </div>
 
     <!-- ═══ Tab: Locate ═══ -->
-    <div class="tab-content active" id="tabLocate" data-tab="locate">
+    <div class="tab-content active" id="tabLocate" data-tab="locate" role="tabpanel">
 
       <!-- GPS -->
       <div class="panel-section">
-        <button class="btn-gps" id="btnGPS">
-          <span>&#9678;</span><span id="btnText">USE MY LOCATION</span>
+        <button class="btn-gps" id="btnGPS" aria-label="Use GPS to detect my current location">
+          <span aria-hidden="true">&#9678;</span><span id="btnText">USE MY LOCATION</span>
         </button>
         <div class="status-bar" id="status">
           <div class="spinner"></div>
@@ -447,18 +554,18 @@ input.coord-input.text-input { padding-left: 0.55rem; }
         <div class="coord-row">
           <div class="coord-wrap">
             <span class="coord-tag">LAT</span>
-            <input class="coord-input" type="number" id="latInput" placeholder="53.5344" step="any" min="-90" max="90">
+            <input class="coord-input" type="number" id="latInput" placeholder="53.5344" step="any" min="-90" max="90" aria-label="Latitude">
           </div>
           <div class="coord-wrap">
             <span class="coord-tag">LON</span>
-            <input class="coord-input" type="number" id="lonInput" placeholder="-113.49" step="any" min="-180" max="180">
+            <input class="coord-input" type="number" id="lonInput" placeholder="-113.49" step="any" min="-180" max="180" aria-label="Longitude">
           </div>
           <button class="btn-encode" id="btnManual">GO</button>
         </div>
       </div>
 
       <!-- Result -->
-      <div class="result-block" id="resultBlock">
+      <div class="result-block" id="resultBlock" aria-live="polite" aria-label="Location result">
 
         <div class="result-hdr">
           <div class="live-dot"></div>
@@ -467,7 +574,7 @@ input.coord-input.text-input { padding-left: 0.55rem; }
         </div>
 
         <div class="code-zone">
-          <div class="plus-code-big" id="codeDisplay" title="Click to copy">&mdash;</div>
+          <div class="plus-code-big" id="codeDisplay" title="Click to copy" role="button" tabindex="0" aria-label="Plus Code - click to copy">&mdash;</div>
           <div class="copy-hint">&uarr; click to copy</div>
         </div>
 
@@ -508,18 +615,39 @@ input.coord-input.text-input { padding-left: 0.55rem; }
           </div>
         </div>
 
-        <div class="action-row">
-          <a id="mapsLink" class="btn-action" href="#" target="_blank">&nearr; Maps</a>
-          <a id="osmLink"  class="btn-action" href="#" target="_blank">&nearr; OSM</a>
-          <a id="plusLink" class="btn-action" href="#" target="_blank">&nearr; plus.codes</a>
-          <button class="btn-action" id="btnCopy">&#9112; Copy</button>
+        <!-- Emergency Card Button -->
+        <div class="emergency-action" id="emergencyAction">
+          <button class="btn-emergency" id="btnEmergency"
+                  aria-label="Generate emergency location card for printing">
+            <span class="emergency-icon" aria-hidden="true">&#128680;</span>
+            <span class="emergency-label">GENERATE EMERGENCY CARD</span>
+            <span class="emergency-sub">Print for wallet, fridge, or glove box</span>
+          </button>
         </div>
 
       </div>
     </div>
 
     <!-- ═══ Tab: Tools ═══ -->
-    <div class="tab-content" id="tabTools" data-tab="tools">
+    <div class="tab-content" id="tabTools" data-tab="tools" role="tabpanel">
+
+      <!-- Quick Links & External Maps -->
+      <div class="panel-section" id="quickLinksSection">
+        <div class="sec-label">Quick Links &amp; External Maps</div>
+        <p class="tool-desc" id="quickLinksPlaceholder">
+          Drop a pin to enable external map links.
+        </p>
+        <div class="action-row" id="quickLinksRow" style="display:none">
+          <a id="mapsLink" class="btn-action" href="#" target="_blank"
+             aria-label="Open location in Google Maps">&nearr; Maps</a>
+          <a id="osmLink"  class="btn-action" href="#" target="_blank"
+             aria-label="Open location in OpenStreetMap">&nearr; OSM</a>
+          <a id="plusLink" class="btn-action" href="#" target="_blank"
+             aria-label="Open Plus Code on plus.codes">&nearr; plus.codes</a>
+          <button class="btn-action" id="btnCopy"
+                  aria-label="Copy Plus Code to clipboard">&#9112; Copy</button>
+        </div>
+      </div>
 
       <!-- Search by Address -->
       <div class="panel-section">
@@ -587,7 +715,7 @@ input.coord-input.text-input { padding-left: 0.55rem; }
     </div>
 
     <!-- ═══ Tab: Share ═══ -->
-    <div class="tab-content" id="tabShare" data-tab="share">
+    <div class="tab-content" id="tabShare" data-tab="share" role="tabpanel">
 
       <!-- Share Location Link -->
       <div class="panel-section" id="shareLinkSection">
@@ -614,18 +742,6 @@ input.coord-input.text-input { padding-left: 0.55rem; }
         </button>
       </div>
 
-      <!-- Emergency Card -->
-      <div class="panel-section" id="emergencySection">
-        <div class="sec-label">Emergency Location Card</div>
-        <p class="tool-desc">
-          Print a card with your location details for emergency reference.
-          Keep in glove box, on fridge, or in wallet.
-        </p>
-        <button class="btn-gps" id="btnEmergency" style="background:var(--accent2);box-shadow:0 2px 8px rgba(240,68,56,0.3);font-size:0.62rem">
-          &#128680; GENERATE EMERGENCY CARD
-        </button>
-      </div>
-
     </div>
 
   </aside>
@@ -639,7 +755,14 @@ input.coord-input.text-input { padding-left: 0.55rem; }
 
 </div>
 
-<div class="toast" id="toast">COPIED</div>
+<div class="toast" id="toast" role="alert" aria-live="assertive">COPIED</div>
+
+<!-- Mobile-only fixed emergency button -->
+<button class="mobile-emergency-fab" id="mobileEmergencyFab"
+        aria-label="Generate emergency location card"
+        style="display:none">
+  &#128680; EMERGENCY CARD
+</button>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -716,8 +839,8 @@ const State = {
 // Tile layers
 // ═══════════════════════════════════════════════
 const layers = {
-  street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  street: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, USGS, NGA',
     maxZoom: 19
   }),
   satellite: L.tileLayer(
@@ -786,7 +909,11 @@ const btnCopy   = $('btnCopy'),  mapTip  = $('mapTip'),  toast   = $('toast');
 // Tab switching
 // ═══════════════════════════════════════════════
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const isActive = b.dataset.tab === name;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === name));
 }
 
@@ -1080,33 +1207,64 @@ function generateEmergencyCard() {
   if (!State.plusCode) { showToast('DROP A PIN FIRST'); return; }
   const addr = State.address;
   const addrLine = addr ? [addr.street, addr.city, addr.province, addr.postal].filter(Boolean).join(', ') : 'No civic address';
-  const mapURL = `https://www.openstreetmap.org/export/embed.html?bbox=${State.lon - 0.005},${State.lat - 0.003},${State.lon + 0.005},${State.lat + 0.003}&layer=mapnik&marker=${State.lat},${State.lon}`;
+
+  // Static map image via ESRI World Street Map export API
+  const dLat = 0.005, dLon = 0.008;
+  const bbox = [State.lon - dLon, State.lat - dLat, State.lon + dLon, State.lat + dLat].join(',');
+  const mapImgURL = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=4326&size=800,500&format=png&transparent=false&f=image`;
 
   const html = `<!DOCTYPE html><html><head><title>Emergency Location Card - NorthPin</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Syne',sans-serif;padding:1in;background:#fff}
-.card{border:3px solid #e63946;border-radius:12px;padding:1.5rem;max-width:5in}
-.card-header{background:#e63946;color:#fff;padding:0.5rem 1rem;border-radius:6px;font-size:1.1rem;font-weight:800;text-align:center;margin-bottom:1rem}
-.field{margin-bottom:0.6rem}
+body{font-family:'Syne',sans-serif;padding:0.6in;background:#fff}
+.card{border:3px solid #dc2626;border-radius:12px;padding:1.5rem;max-width:7in;margin:0 auto}
+.card-header{background:#dc2626;color:#fff;padding:0.6rem 1rem;border-radius:6px;font-size:1.2rem;font-weight:800;text-align:center;margin-bottom:1rem;letter-spacing:0.04em}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-bottom:0.75rem}
+.field-full{grid-column:1/-1}
 .label{font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;color:#9ca3af;text-transform:uppercase}
 .value{font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;color:#111827}
-.value.big{font-size:1.6rem;color:#0062ff;letter-spacing:0.12em}
-.map-frame{width:100%;height:200px;border:1px solid #e2e5ea;border-radius:8px;margin:0.75rem 0}
-.footer{font-family:'Space Mono',monospace;font-size:0.55rem;color:#9ca3af;text-align:center;margin-top:1rem}
-@media print{body{padding:0.5in}}
+.value.big{font-size:1.8rem;color:#0062ff;letter-spacing:0.12em}
+.map-container{position:relative;width:100%;border:2px solid #e2e5ea;border-radius:8px;margin:0.5rem 0;overflow:hidden}
+.map-img{width:100%;height:auto;display:block}
+.map-marker{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px}
+.map-marker::before,.map-marker::after{content:'';position:absolute;background:#dc2626}
+.map-marker::before{width:3px;height:24px;left:50%;transform:translateX(-50%)}
+.map-marker::after{width:24px;height:3px;top:50%;transform:translateY(-50%)}
+.map-marker-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border:3px solid #dc2626;border-radius:50%;background:rgba(220,38,38,0.15)}
+.instructions{font-family:'Space Mono',monospace;font-size:0.65rem;color:#374151;background:#fef2f2;border:2px solid #fca5a5;border-radius:6px;padding:0.6rem 0.75rem;margin-top:0.75rem;line-height:1.6;text-align:center}
+.instructions strong{color:#dc2626}
+.footer{font-family:'Space Mono',monospace;font-size:0.55rem;color:#9ca3af;text-align:center;margin-top:0.75rem;line-height:1.6}
+@media print{body{padding:0.4in} .card{max-width:100%;border-width:2px}}
 </style></head><body>
 <div class="card">
-<div class="card-header">EMERGENCY LOCATION CARD</div>
-<div class="field"><div class="label">Plus Code</div><div class="value big">${State.plusCode}</div></div>
-<div class="field"><div class="label">GPS Coordinates</div><div class="value">${State.lat.toFixed(6)}, ${State.lon.toFixed(6)}</div></div>
-<div class="field"><div class="label">Address</div><div class="value">${addrLine}</div></div>
-${State.elevation != null ? `<div class="field"><div class="label">Elevation</div><div class="value">${Math.round(State.elevation)} m</div></div>` : ''}
-<iframe class="map-frame" src="${mapURL}" frameborder="0"></iframe>
-<div class="footer">Generated by NorthPin &middot; ${new Date().toLocaleDateString()}<br>Give this code to 911: ${State.plusCode} &middot; ${State.lat.toFixed(4)}, ${State.lon.toFixed(4)}</div>
+<div class="card-header">&#128680; EMERGENCY LOCATION CARD</div>
+<div class="fields">
+<div class="field-full"><div class="label">Plus Code (Give to 911)</div><div class="value big">${State.plusCode}</div></div>
+<div><div class="label">GPS Coordinates</div><div class="value">${State.lat.toFixed(6)}, ${State.lon.toFixed(6)}</div></div>
+<div><div class="label">Elevation</div><div class="value">${State.elevation != null ? Math.round(State.elevation) + ' m' : 'N/A'}</div></div>
+<div class="field-full"><div class="label">Address</div><div class="value">${addrLine}</div></div>
 </div>
-<script>setTimeout(()=>window.print(),1000)<\/script>
+<div class="map-container">
+<img class="map-img" src="${mapImgURL}" alt="Map showing location">
+<div class="map-marker"></div>
+<div class="map-marker-ring"></div>
+</div>
+<div class="instructions">
+When calling 911, say: <strong>&ldquo;My Plus Code is ${State.plusCode}&rdquo;</strong><br>
+or give GPS: <strong>${State.lat.toFixed(4)}, ${State.lon.toFixed(4)}</strong>
+</div>
+<div class="footer">
+Generated by NorthPin &middot; ${new Date().toLocaleDateString()}
+</div>
+</div>
+<script>
+var img = document.querySelector('.map-img');
+function triggerPrint() { setTimeout(function() { window.print(); }, 300); }
+if (img.complete && img.naturalWidth > 0) { triggerPrint(); }
+else { img.addEventListener('load', triggerPrint); img.addEventListener('error', triggerPrint); }
+setTimeout(function() { window.print(); }, 5000);
+<\/script>
 </body></html>`;
 
   const win = window.open('', '_blank');
@@ -1264,6 +1422,16 @@ function renderResult(lat, lon, accuracyM, panMap) {
   latInput.value = lat.toFixed(6);
   lonInput.value = lon.toFixed(6);
 
+  // Show quick links in Tools tab
+  const qlRow = $('quickLinksRow');
+  const qlPlaceholder = $('quickLinksPlaceholder');
+  if (qlRow) qlRow.style.display = 'flex';
+  if (qlPlaceholder) qlPlaceholder.style.display = 'none';
+
+  // Show mobile emergency FAB when a pin exists
+  const fab = $('mobileEmergencyFab');
+  if (fab && window.innerWidth <= 768) fab.style.display = 'block';
+
   resultBlk.classList.add('visible');
   hideStatus();
 
@@ -1386,6 +1554,12 @@ $('btnCopyCard').addEventListener('click', () => {
 });
 
 $('btnEmergency').addEventListener('click', generateEmergencyCard);
+
+// Mobile emergency FAB
+const mobileEmergencyFab = $('mobileEmergencyFab');
+if (mobileEmergencyFab) {
+  mobileEmergencyFab.addEventListener('click', generateEmergencyCard);
+}
 
 // ═══════════════════════════════════════════════
 // Init
